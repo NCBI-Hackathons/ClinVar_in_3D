@@ -2,7 +2,7 @@
 Mapping Clinically Relevant Mutations to Protein Structures
 
 ## Goal:
-To enhance CDD @ NCBI by annotating 3D protein structures with all dbSNP and ClinVar records
+To enhance iCn3D (new interactive version of Cn3D at NCBI) by annotating all 3D protein structures with dbSNP rs numbers and connected clinical data from ClinVar.
 
 - iCn3D running with example
 - Get data
