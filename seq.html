@@ -1,0 +1,763 @@
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<meta name="description" content="iCn3D Structure Viewer">
+<meta name="ncbi_db" content="structure">
+<meta name="keywords" content="NCBI, Structure, JavaScript, iCn3D, 3D, Viewer, WebGL, three.js, sequence, chemical">
+<meta name="robots" content="index,follow,noarchive">
+<title>iCn3D: Web-based 3D Structure Viewer</title>
+</head>
+<body>
+
+  <div id="div0"></div>
+  <div style="clear: both"></div>
+  <div id="seq0" class="icn3d-box" style="overflow:auto;">
+		<div id="giseq" class="scale"></div>
+		<div id="snp" class="scale"></div>
+		<div id="cddsite" class="scale"></div>
+		<div id="domain" class="scale"></div>
+  </div>
+  <br/><br/>
+
+  <link rel="stylesheet" href="lib/jquery-ui.min.css">
+  <link rel="stylesheet" href="icn3d_full_ui.css">
+  <style>
+  .icn3d-seqTitle, .icn3d-seqTitle2, .icn3d-annoTitle {display:inline-block; font-size:11px; font-weight:bold; width:120px!important;}
+  #seq0 {max-height:150px;}
+  .link {color: #0000FF; cursor: pointer;}
+  .left {text-align:left!important;}
+  .right {text-align:right!important;}
+//  .scale {-ms-transform:scaleX(1); -webkit-transform:scaleX(1); transform:scaleX(1); -ms-transform-origin-x: 0; -webkit-transform-origin-x: 0;  transform-origin-x: 0; }
+  </style>
+  <script src="lib/jquery.min.js"></script>
+  <script src="lib/jquery-ui.min.js"></script>
+  <script src="lib/three.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+  <script src="full_ui_all.js"></script>
+
+  <script type="text/javascript">
+
+    // separating the GET parameters from the current URL
+    var bNopara = false;
+    var ampPos = document.URL.indexOf("?");
+    if(ampPos === -1) {
+    //  alert("Please include '?queries=[nucleotide id]&targets=[gi or accession]' in your url");
+    	bNopara = true;
+    }
+
+    var getParams = document.URL.split("?");
+    // transforming the GET parameters into a dictionnary
+    var search = getParams[getParams.length - 1];
+    var params = {};
+    var inpara = "";
+
+    if(!bNopara) {
+    	params = JSON.parse('{"' + decodeURI(search).replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g,'":"') + '"}');
+
+    	// for mmdb structures, pass the parameters after the first "&" sign
+      	inpara = "&" + document.URL.substr(ampPos + 1);
+    }
+
+    //var nid = params.queries;
+
+    var gi = params.id; // gi or accession such as 4B3O_A. Accession is preferred
+    var pdbid, CHAIN, bInputPdb = false;
+    if(isNaN(gi)) {
+      pdbid = gi.substr(0, 4);
+      CHAIN = gi.substr(5);
+      bInputPdb = true;
+    }
+
+    var command = params.command; // ";" separated commands
+
+    // add label for selections
+    var SELECT = params.select;
+
+    var LABEL = params.label;
+
+    var SIZE = params.size;
+    if(SIZE === undefined) SIZE = 30;
+
+    var COLOR = params.color;
+    if(COLOR === undefined) COLOR = 'FFFF00';
+
+    var BACKGROUND = params.background;
+    if(BACKGROUND === undefined) BACKGROUND = 0;
+
+    $( document ).ready(function() {
+          //======== section 1: set iCn3D
+/*
+		iCn3DUI.prototype.hideMenu = function(width, height) { var me = this;
+		  if($("#" + me.pre + "menulist")[0] !== undefined) $("#" + me.pre + "menulist")[0].style.display = "none";
+		  if($("#" + me.pre + "menuLogSection")[0] !== undefined) $("#" + me.pre + "menuLogSection")[0].style.display = "none";
+		  if($("#" + me.pre + "commandlog")[0] !== undefined) $("#" + me.pre + "commandlog")[0].style.display = "none";
+		  if($("#" + me.pre + "selection")[0] !== undefined) $("#" + me.pre + "selection")[0].style.display = "none";
+
+		  //if($("#" + me.pre + "title")[0] !== undefined) $("#" + me.pre + "title")[0].style.display = "none";
+		  $("#" + me.pre + "title")[0].style.margin = "10px 0 0 10px";
+
+		  $("#" + me.pre + "viewer").width(width).height(height);
+		  $("#" + me.pre + "canvas").width(width).height(height);
+		};
+*/
+          var cfg = {
+              divid: 'div0',
+              width: '100%',
+              height: '90%',
+              resize: false,
+              rotate: false,
+              showmenu: true,
+              showseq: false,
+              command: command
+          };
+
+          if(pdbid === undefined) {
+          	cfg['gi'] = gi;
+          }
+          else {
+            cfg['mmdbid'] = pdbid;
+          }
+
+          var icn3dui = new iCn3DUI(cfg);
+
+          //communicate with the 3D viewer with chained functions
+          //$.when(icn3dui.show3DStructure()).then(function() {
+          	//if(sel !== undefined && !isNaN(sel) ) icn3dui.loadScript("color grey; select :" + sel + "-" + sel + "; color red; select zone cutoff 5; color blue");
+          //});
+
+        //======== section 2: set sequence
+        var gidivid = 'giseq';
+        var cdddivid = 'cddsite';
+        var domaindivid = 'domain';
+        var snpdivid = 'snp';
+
+        var bShowAllDna = false;
+        var giChainid = '';
+
+        function showSeq(data) {
+          	var strArray = data.split('\n');
+          	var title = strArray[0]; // remove the first line of title
+          	var pos = title.indexOf('Chain'); // >pdb|1LPA|B Chain B, ...
+          	if(pos > 0) giChainid = title.substr(5, 4) + '_' + title.substr(pos + 6, 1);
+
+          	strArray.shift();
+
+          	var giSeq = strArray.join('');
+          	icn3dui.giSeq = giSeq;
+
+//console.log("seq: " + icn3dui.giSeq);
+
+          	if(SELECT !== undefined && LABEL !== undefined) {
+				var selectArray = SELECT.split(',');
+				var residues = '';
+				for(var i = 0, il = selectArray.length; i < il; ++i) {
+				  var resiArray = selectArray[i].split('-');
+				  if(resiArray.length == 1) {
+					var pos = parseInt(resiArray[0]);
+					if(pos !== undefined && pos-1 <= giSeq.length && pos-1 >= 1) {
+					  residues += pos.toString() + ',';
+					}
+				  }
+				  else if(resiArray.length == 2) {
+					var pos1 = parseInt(resiArray[0]);
+					var pos2 = parseInt(resiArray[1]);
+
+					if(pos1 !== undefined && pos2 !== undefined) {
+					  if(pos1 < 1) pos1 = 1;
+					  if(pos2 > giSeq.length) pos2 = giSeq.length;
+
+					  residues += pos1.toString() + '-' + pos2.toString() + ',';
+					}
+				  }
+				}
+
+				if(command === undefined) command = '';
+
+				command += 'select .' + CHAIN + ':' + residues + '; add label ' + LABEL + ' | size ' + SIZE + ' | color ' + COLOR + ' | background ' + BACKGROUND + ' | type custom';
+
+				icn3dui.cfg.command=command;
+			}
+
+			// gi html
+			var html = '<div id="giseq_sequence" class="icn3d-dl_sequence">';
+
+          	// html to display protein positions (10, 20, etc)
+          	html += '<div class="icn3d-residueLine" style="white-space:nowrap;">';
+			//html += '<div class="icn3d-annoTitle" gi="' + gi + '" anno="0">Protein Count</div>';
+			html += '<div class="icn3d-annoTitle" gi="' + gi + '" anno="0"></div>';
+			html += '<span class="icn3d-residueNum"></span>';
+
+          	for(var i = 0, il = giSeq.length; i < il; ++i) {
+          	  if( (i+1) % 10 === 0) {
+          	  	html += '<span>' + (i+1).toString() + '</span>';
+          	  }
+          	  else {
+          	  	html += '<span></span>'; //'<span>-</span>';
+          	  }
+          	}
+			html += '<span class="icn3d-residueNum"></span>';
+			html += '<br>';
+			html += '</div>';
+
+			// sequence
+			if(pdbid === undefined) {
+			  html += '<div class="icn3d-seqTitle" gi="' + gi + '" anno="sequence"><span style="white-space:nowrap; font-size:1.3em;">Protein gi ' + gi + '</span></div>';
+			}
+			else {
+			  html += '<div class="icn3d-seqTitle" gi="' + gi + '" anno="sequence"><span style="white-space:nowrap; font-size:1.3em;">Protein ' + gi + '</span></div>';
+			}
+
+			html += '<span class="icn3d-seqLine">';
+			html += '<span class="icn3d-residueNum" title="starting protein sequence number">1</span>';
+
+          	for(var i = 0, il = giSeq.length; i < il; ++i) {
+          	  var c = giSeq.charAt(i);
+          	  var pos = (i+1).toString();
+          	  html += '<span id="' + gidivid + '_' + gi + '_' + pos + '" title="' + c + pos + '" class="icn3d-residue">' + c + '</span>';
+          	}
+			html += '<span class="icn3d-residueNum" title="ending protein sequence number">' + i.toString() + '</span>';
+			html += '</span>';
+			html += '<br>';
+
+			html += '</div>';
+
+			$("#" + gidivid).html(html);
+
+        } // function showSeq(data)
+
+		function selectSequenceNonMobile() { var me = icn3dui;
+		  $("#giseq_sequence").add("#cddseq_sequence").add("#domainseq_sequence").add("#snpseq_sequence").selectable({
+		  //$("#cddseq_sequence").add("#domainseq_sequence").selectable({
+			  stop: function() {
+				  $("#" + me.pre + "chainid").val("");
+				  $("#" + me.pre + "structureid").val("");
+
+				  $("#" + me.pre + "chainid2").val("");
+				  $("#" + me.pre + "structureid2").val("");
+
+				  me.removeSeqChainBkgd();
+				  me.removeSeqResidueBkgd();
+
+				  me.icn3d.highlightAtoms = {};
+				  removeAllLabels();
+
+				  // select residues
+				  $(".ui-selected", this).each(function() {
+					  var id = $(this).attr('id');
+					  //if(id !== undefined && id !== '' && id !== 'snpseq' && id !== 'giseq' && id !== 'cddsite' && id !== 'domain') {
+					  if(id !== undefined && id !== '') {
+
+						$(this).toggleClass('icn3d-highlightSeq');
+
+						//for(var chainid in me.icn3d.chains) {
+						var chainid;
+						if(bInputPdb) {
+						  chainid = pdbid + '_' + CHAIN;
+						}
+						else {
+						  chainid = giChainid; //Object.keys(me.icn3d.chains)[0];
+						}
+
+						  // protein chains
+						  var atomIndex = Object.keys(me.icn3d.chains[chainid])[0];
+						  if(!me.icn3d.ligands.hasOwnProperty( atomIndex ) && !me.icn3d.ions.hasOwnProperty( atomIndex ) && !me.icn3d.water.hasOwnProperty( atomIndex )) {
+//console.log("chainid: " + chainid + " atomIndex: " + atomIndex);
+							//var residueid = id.substr(id.indexOf('_') + 1);
+							var residueid;
+							residueid = chainid + "_" + id.substr(id.lastIndexOf('_') + 1);
+
+							if(me.icn3d.residues.hasOwnProperty(residueid)) {
+								if($(this).hasClass('icn3d-highlightSeq')) {
+								  for(var j in me.icn3d.residues[residueid]) {
+									me.icn3d.highlightAtoms[j] = 1;
+								  }
+								  me.selectedResidues[residueid] = 1;
+								}
+								else {
+									for (var i in me.icn3d.residues[residueid]) {
+									  me.icn3d.highlightAtoms[i] = undefined;
+									}
+									me.selectedResidues[residueid] = undefined;
+
+									me.icn3d.removeHighlightObjects();
+								}
+							}
+						  } // end of if
+						//} // end of for
+					  }
+				  });
+
+				  me.icn3d.addHighlightObjects();
+
+/*
+				  // get all chainid in the selected residues
+				  var chainHash = {};
+				  for(var residueid in me.selectedResidues) {
+					  var pos = residueid.lastIndexOf('_');
+					  var chainid = residueid.substr(0, pos);
+
+					  chainHash[chainid] = 1;
+				  }
+
+				  // highlight the nodes
+				  var chainArray2d = Object.keys(chainHash);
+				  me.add2DHighlight(chainArray2d);
+*/
+
+				  me.icn3d.addResiudeLabels(me.icn3d.highlightAtoms);
+				  me.icn3d.draw();
+
+				  // update menu
+				  $("#" + me.pre + "chainid").val("");
+				  $("#" + me.pre + "structureid").val("");
+
+				  $("#" + me.pre + "chainid2").val("");
+				  $("#" + me.pre + "structureid2").val("");
+
+				  // select annotation title
+				  $(".ui-selected", this).each(function() {
+					  //var currChain = $(this).attr('chain');
+					  if($(this).hasClass('icn3d-seqTitle') && $(this).attr('nid') === undefined && $(this).attr('gi') === undefined) {
+						me.removeSeqChainBkgd();
+						me.removeSeqResidueBkgd();
+
+						$(this).toggleClass('icn3d-highlightSeq');
+
+						//var chainid = $(this).attr('chain');
+						//var commandname = chainid;
+
+						if($(this).hasClass('icn3d-highlightSeq')) {
+							//me.selectAChain(chainid, commandname);
+							//me.setLogCommand('select chain ' + chainid, true);
+							var commandname = $(this).attr('shorttitle');
+							var commanddescr = commandname;
+
+							if($(this).attr('domain') !== undefined) {
+								var from = parseInt($(this).attr('from'));
+								var to = parseInt($(this).attr('to'));
+
+								me.icn3d.highlightAtoms = {};
+
+								removeAllLabels();
+
+								//for(var chainid in me.icn3d.chains) {
+								var chainid;
+								if(bInputPdb) {
+								  chainid = pdbid + '_' + CHAIN;
+								}
+								else {
+								  chainid = Object.keys(me.icn3d.chains)[0];
+								}
+
+								  // protein chains
+								  var atomIndex = Object.keys(me.icn3d.chains[chainid])[0];
+								  if(!me.icn3d.ligands.hasOwnProperty( atomIndex ) && !me.icn3d.ions.hasOwnProperty( atomIndex ) && !me.icn3d.water.hasOwnProperty( atomIndex )) {
+									var residueidHash = {};
+									var residueid;
+									for(var i = from; i < to; ++i) {
+										residueid = chainid + '_' + (i+1).toString();
+										residueidHash[residueid] = 1;
+									}
+
+									me.selectResidueList(residueidHash, commandname, commanddescr);
+
+									residueid = chainid + '_' + parseInt((from + to)/2).toString();
+									//residueid = chainid + '_' + from.toString();
+									var position = me.icn3d.centerAtoms(me.icn3d.hash2Atoms(me.icn3d.residues[residueid]));
+
+									addLabel(commandname, position);
+								  } // end of if
+								//} // end of for
+							}
+							else if($(this).attr('site') !== undefined) {
+								var posArray = $(this).attr('posarray').split(',');
+
+								me.icn3d.highlightAtoms = {};
+
+								removeAllLabels();
+
+								//for(var chainid in me.icn3d.chains) {
+								var chainid;
+								if(bInputPdb) {
+								  chainid = pdbid + '_' + CHAIN;
+								}
+								else {
+								  chainid = Object.keys(me.icn3d.chains)[0];
+								}
+
+								  // protein chains
+								  var atomIndex = Object.keys(me.icn3d.chains[chainid])[0];
+								  if(!me.icn3d.ligands.hasOwnProperty( atomIndex ) && !me.icn3d.ions.hasOwnProperty( atomIndex ) && !me.icn3d.water.hasOwnProperty( atomIndex )) {
+									var residueidHash = {};
+									var residueid;
+									for(var i = 0, il = posArray.length; i < il; ++i) {
+										residueid = chainid + '_' + (parseInt(posArray[i])+1).toString();
+										residueidHash[residueid] = 1;
+									}
+
+									me.selectResidueList(residueidHash, commandname, commanddescr);
+
+									residueid = chainid + '_' + posArray[parseInt((0 + posArray.length)/2)].toString();
+									//residueid = chainid + '_' + posArray[0].toString();
+									var position = me.icn3d.centerAtoms(me.icn3d.hash2Atoms(me.icn3d.residues[residueid]));
+
+									addLabel(commandname, position);
+
+									// do no tshow each rsidue
+									//me.icn3d.addResiudeLabels(me.icn3d.highlightAtoms);
+
+								  } // end of if
+								//} // end of for
+							}
+
+							me.icn3d.addHighlightObjects();
+
+							me.icn3d.draw();
+						}
+						else {
+							me.icn3d.removeHighlightObjects();
+							me.remove2DHighlight();
+
+							me.icn3d.highlightAtoms = {};
+
+						   $("#" + me.pre + "customResidues").val("");
+						   $("#" + me.pre + "customResidues2").val("");
+						   $("#" + me.pre + "customAtoms").val("");
+						}
+					  }
+				  });
+			  }
+		  });
+		}
+
+		function addLabel(label, position) { var me = icn3dui;
+			var x = position.center.x;
+			var y = position.center.y;
+			var z = position.center.z;
+
+			//me.addLabel(text, x,y,z, size, color, background, type);
+			var size = parseInt(me.icn3d.LABELSIZE * 10 / label.length);
+			var color = me.icn3d.GREYD;
+			me.addLabel(label, x,y,z, size, color, undefined, 'custom');
+
+			//me.icn3d.draw();
+		}
+
+		function removeAllLabels() { var me = icn3dui;
+           for(var name in me.icn3d.labels) {
+               if(name === 'residue' || name === 'custom') {
+                   me.icn3d.labels[name] = [];
+               }
+           }
+		}
+
+		function getSnpLine(line, totalLineNum, resi2snp, bStartEndRes) {
+			var title = 'SNP';
+
+			var html = '';
+
+			if(bStartEndRes) {
+				html += '<div class="icn3d-seqTitle link" shorttitle="' + title + '" anno="sequence" title="' + title + '">' + title + ' </div>';
+			}
+			else {
+				html += '<div class="icn3d-seqTitle"></div>';
+			}
+
+			var pre = 'snp';
+
+			html += '<span class="icn3d-seqLine">';
+			var start = bStartEndRes ? '1' : '';
+			html += '<span class="icn3d-residueNum" title="starting protein sequence number">' + start + '</span>';
+			for(var i = 1, il = icn3dui.giSeq.length; i <= il; ++i) {
+			  if(i % totalLineNum == line && resi2snp[i] !== undefined) {
+				var c = icn3dui.giSeq.charAt(i-1);
+				var pos = i.toString();
+
+				var snpStr = c + '>' + resi2snp[i].split('');
+				var snpTitle = pos + snpStr;
+
+				html += '<span id="' + pre + '_' + gi + '_' + pos + '" title="' + snpTitle + '" class="icn3d-residue">' + snpStr + '</span>';
+			  }
+			  else {
+				html += '<span></span>'; //'<span>-</span>';
+			  }
+			}
+			var end = bStartEndRes ? icn3dui.giSeq.length : '';
+			html += '<span class="icn3d-residueNum" title="ending protein sequence number">' + end + '</span>';
+			html += '</span>';
+			html += '<br>';
+
+			return html;
+		}
+
+		function showSnp() {
+			// show conserved domains and binding sites
+			var url = "https://test.ncbi.nlm.nih.gov/projects/SNP/beVarSearch.cgi?appname=iCn3D&format=bed&report=pdb2bed&gi=" + gi;
+			$.ajax({
+			  url: url,
+			  dataType: 'text',
+			  cache: true,
+			  success: function(data) {
+			    var html = '<div id="snpseq_sequence" class="icn3d-dl_sequence">';
+
+				var strArray = data.split('\n');
+
+				var resi2snp = {};
+				for(var i = 0, il = strArray.length; i < il; ++i) {
+				  var snpStr = strArray[i].split('\t')[3];
+
+				  var resiStr = snpStr.substr(0, snpStr.length - 3);
+				  var resi = parseInt(resiStr);
+				  var currRes = snpStr.substr(snpStr.length - 3, 1);
+				  var snpRes = snpStr.substr(snpStr.length - 1, 1);
+
+
+
+				  if(currRes !== '-' && currRes !== '*' && snpRes !== '-' && snpRes !== '*') {
+				  	if(resi2snp[resi] === undefined) {
+				  		resi2snp[resi] = '';
+				  	}
+
+				  	resi2snp[resi] += snpRes;
+				  }
+				}
+
+//console.log("resi2snp: " + JSON.stringify(resi2snp));
+
+				html += getSnpLine(1, 3, resi2snp, 1);
+				html += getSnpLine(2, 3, resi2snp, 0);
+				html += getSnpLine(0, 3, resi2snp, 0);
+
+				html += '</div>';
+
+				$("#" + snpdivid).html(html);
+			  }
+			})
+			.fail(function() {
+				alert( "No SNP data were found for the gi " + gi + "..." );
+			});
+		}
+
+		function showCddSite() {
+			// show conserved domains and binding sites
+			var url = "https://test.ncbi.nlm.nih.gov/Structure/cdannots/cdannots.fcgi?fmt&queries=" + gi;
+			$.ajax({
+			  url: url,
+			  dataType: 'json',
+			  cache: true,
+			  success: function(data) {
+			    var html = '<div id="cddseq_sequence" class="icn3d-dl_sequence">';
+
+			    var domainArray = data.data[0].doms;
+
+			    for(var index = 0, indexl = domainArray.length; index < indexl; ++index) {
+					var acc = domainArray[index].acc;
+					var type = domainArray[index].type;
+					var title = type + ': ' + domainArray[index].title.split(':')[0];
+					var fulltitle = type + ': ' + domainArray[index].title + ' (accession: ' + acc + ')';
+
+					var domainFrom = parseInt(domainArray[index].locs[0].segs[0].from);
+					var domainTo = parseInt(domainArray[index].locs[0].segs[0].to);
+					var range = domainTo - domainFrom + 1;
+
+					html += '<div class="icn3d-seqTitle link" domain="' + acc + '" from="' + domainFrom.toString() + '" to="' + domainTo.toString() + '" shorttitle="' + title + '" anno="sequence" title="' + fulltitle + '">' + title + ' </div>';
+					html += '<span class="icn3d-seqLine">';
+					html += '<span class="icn3d-residueNum" title="starting protein sequence number">' + (domainFrom+1).toString() + '</span>';
+
+					var pre = type + index.toString();
+					for(var i = 0, il = icn3dui.giSeq.length; i < il; ++i) {
+					  if(i >= domainFrom && i <= domainTo) {
+					    var c = icn3dui.giSeq.charAt(i);
+					    var pos = (i+1).toString();
+
+					  	html += '<span id="' + pre + '_' + gi + '_' + pos + '" title="' + c + pos + '" class="icn3d-residue">' + c + '</span>';
+					  }
+					  else {
+					  	html += '<span></span>'; //'<span>-</span>';
+					  }
+					}
+					html += '<span class="icn3d-residueNum" title="ending protein sequence number">' + (domainTo+1).toString() + '</span>';
+					html += '</span>';
+					html += '<br>';
+				}
+
+			    var siteArray = data.data[0].sites;
+
+			    for(var index = 0, indexl = siteArray.length; index < indexl; ++index) {
+					var domain = siteArray[index].srcdom;
+					var type = siteArray[index].type;
+					var resCnt = siteArray[index].sz;
+
+					var title = 'site: ' + siteArray[index].title;
+					if(title.length > 20) title = title.substr(0, 20) + '...';
+
+					var fulltitle = 'site: ' + siteArray[index].title + ' (domain: ' + domain + ')';
+
+					var resPosArray = siteArray[index].locs[0].coords;
+
+					html += '<div class="icn3d-seqTitle link" site="site" posarray="' + resPosArray.toString() + '" shorttitle="' + title + '" anno="sequence" title="' + fulltitle + '">' + title + ' </div>';
+					html += '<span class="icn3d-seqLine">';
+					html += '<span class="icn3d-residueNum" title="residue count in the site">' + resCnt.toString() + ' Residues</span>';
+
+					var pre = 'site' + index.toString();
+					for(var i = 0, il = icn3dui.giSeq.length; i < il; ++i) {
+					  if(resPosArray.indexOf(i) != -1) {
+					    var c = icn3dui.giSeq.charAt(i);
+					    var pos = (i+1).toString();
+
+					  	html += '<span id="' + pre + '_' + gi + '_' + pos + '" title="' + c + pos + '" class="icn3d-residue">' + c + '</span>';
+					  }
+					  else {
+					  	html += '<span></span>'; //'<span>-</span>';
+					  }
+					}
+					html += '<span class="icn3d-residueNum" title="residue count in the site">' + resCnt.toString() + ' Residues</span>';
+					html += '</span>';
+					html += '<br>';
+				}
+
+				html += '</div>';
+
+				$("#" + cdddivid).html(html);
+			  }
+			})
+			.fail(function() {
+				alert( "No CDD data were found for the gi " + gi + "..." );
+			});
+		}
+
+		function showDomain() {
+			// show 3D domains
+			var url;
+			if(pdbid === undefined) {
+			  url = "https://test.ncbi.nlm.nih.gov/Structure/mmdb/mmdb_strview.cgi?program=w3d&gi=" + gi;
+			}
+			else {
+			  url = "https://test.ncbi.nlm.nih.gov/Structure/mmdb/mmdb_strview.cgi?program=w3d&uid=" + pdbid;
+			}
+
+			$.ajax({
+			  url: url,
+			  dataType: 'json',
+			  cache: true,
+			  success: function(data) {
+			    var html = '<div id="domainseq_sequence" class="icn3d-dl_sequence">';
+
+			    var domainArray, proteinname;
+
+			    if(pdbid === undefined) {
+			      domainArray = data.domains['1']; // just check the first molecule
+			      proteinname = data.molid2molinfor['1'].name;
+			    }
+			    else {
+			      var chain = gi.substr(5);
+
+			      var molinfo = data.molid2molinfor;
+			      var currMolid;
+			      for(var molid in molinfo) {
+			        if(molinfo[molid].chain === chain) {
+			          currMolid = molid;
+			          proteinname = molinfo[molid].name;
+			          break;
+			        }
+			      }
+
+			      if(currMolid !== undefined) {
+					  domainArray = data.domains[currMolid];
+//console.log("currMolid: " + currMolid);
+			      }
+			      else {
+					  domainArray = data.domains['1']; // just check the first molecule
+					  proteinname = data.molid2molinfor['1'].name;
+			      }
+			    }
+
+			    for(var index = 0, indexl = domainArray.length; index < indexl; ++index) {
+					var fulltitle = '3D domain ' + (index+1).toString() + ' of ' + proteinname + ' (PDB ID: ' + data.pdbId + ')';
+					var title = (fulltitle.length > 20) ? fulltitle.substr(0,20) + '...' : fulltitle;
+
+					var domainFrom = parseInt(domainArray[index][0][0]) - 1; // 1-based
+					var domainTo = parseInt(domainArray[index][0][1]) - 1;
+					var range = domainTo - domainFrom + 1;
+
+					html += '<div class="icn3d-seqTitle link" domain="' + (index+1).toString() + '" from="' + domainFrom.toString() + '" to="' + domainTo.toString() + '" shorttitle="' + title + '" anno="sequence" title="' + fulltitle + '">' + title + ' </div>';
+					html += '<span class="icn3d-seqLine">';
+					html += '<span class="icn3d-residueNum" title="starting protein sequence number">' + (domainFrom+1).toString() + '</span>';
+
+					var pre = 'domain3d' + index.toString();
+					for(var i = 0, il = icn3dui.giSeq.length; i < il; ++i) {
+					  if(i >= domainFrom && i <= domainTo) {
+					    var c = icn3dui.giSeq.charAt(i);
+					    var pos = (i+1).toString();
+
+					  	html += '<span id="' + pre + '_' + gi + '_' + pos + '" title="' + c + pos + '" class="icn3d-residue">' + c + '</span>';
+					  }
+					  else {
+					  	html += '<span></span>'; //'<span>-</span>';
+					  }
+					}
+					html += '<span class="icn3d-residueNum" title="ending protein sequence number">' + (domainTo+1).toString() + '</span>';
+					html += '</span>';
+					html += '<br>';
+				}
+
+				html += '</div>';
+
+				$("#" + domaindivid).html(html);
+
+				// add here  due to the slowness of this ajax call
+				selectSequenceNonMobile();
+			  }
+			})
+			.fail(function() {
+				alert( "No 3D domain data were found for the gi " + gi + "..." );
+			});
+		}
+
+        // show the sequence and 3D structure
+        var url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=protein&retmode=json&rettype=fasta&id=" + gi;
+        $.ajax({
+          url: url,
+          dataType: 'text',
+          cache: true,
+          success: function(data) {
+          	showSeq(data);
+
+          	icn3dui.show3DStructure();
+
+          	showCddSite();
+
+          	showDomain();
+
+          	showSnp();
+
+          	//selectSequenceNonMobile();
+
+          }
+        })
+        .fail(function() {
+            alert( "No data were found for the nucleotide " + nid + " and the gi " + gi + "..." );
+        });
+
+//		  $("#" + dnadivid).on("from_icn3d", function(event, data) {
+//		  });
+
+    }); // document ready
+
+  </script>
+
+
+
+
+
+</body></html>
