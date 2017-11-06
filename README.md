@@ -13,7 +13,7 @@ iCn3D users currently cannot see where known variants, including those that are 
 iCn3D is would be exponentially more awesome and useful if it could display annotations of known variants, particularly those with known clinical relevance. If we add these annotations, iCn3D users could ask (and answer) biological questions and potentially learn how certain variants cause disease, based on their effects on protein function.
 
 # What is SHoVEIT?
-(ideas: ClinProt, ClinProtView, SeeHowVariantsEndInTraits - SHoVEIT)
+Note: Not a serious proposal. Other ideas: ClinProt, ClinProtView, ?)
 
 Overview Diagram
 
