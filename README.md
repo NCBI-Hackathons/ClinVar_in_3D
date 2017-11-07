@@ -1,84 +1,22 @@
-# DeleteriousMutants
+# Viewing ClinVar & SNP Variants in 3D Protein Structures
 
-## Intro statement
+## Introduction
 
-iCn3D is an interactive protein viewer with which users can highlight desired amino acids or domain features on a 3D protein structure simply by highlighting the corresponding amino acids in the sequence pane. If variants in dbSNP and ClinVar could be linked to proteins in iCn3D, they could be viewed directly on the 3D protein structure. We propose See How Variants End In Traits (SHoVEIT), which enables the retrieval and display of known dbSNP and ClinVar annotations for all PDB proteins with viewable structures in iCn3D.
+iCn3D is an interactive WebGL-based 3D protein structure viewer that displays a given protein in 1D (amino acid sequence), 2D (interaction diagram), and 3D (rotating 3D model) simultaneously. Users can interact with a protein by, for example, highlighting several amino acid residues in the sequence view; the corresponding residues in the remaining views are automatically highlighted. Our goal in this hackathon is to enhance the functionality of iCn3D by importing annotations from other rich sources of information about proteins, such as dbSNP rs numbers, ClinVar assertions of pathogenicity, and known structural features such as ligand binding pockets, protein interaction surfaces, and other functional domains.
 
 ## What's the problem?
 
-iCn3D users currently cannot see where known variants, including those that are clinically relevant, are located within visible protein structures.
+In order for annotations to be viewed in iCn3D they must be retrieved from databases (e.g., dbSNP and ClinVar) using Ajax calls. _(more needed here)_
 
 ## Why should we solve it?
 
-iCn3D is would be exponentially more awesome and useful if it could display annotations of known variants, particularly those with known clinical relevance. If we add these annotations, iCn3D users could ask (and answer) biological questions and potentially learn how certain variants cause disease, based on their effects on protein function.
+Without the aid of a 3D protein structure viewer like iCn3D, researchers and clinicians may be limited in their attempts to evaluate a variant's role in causing disease by the information at their disposal, such as whether a particular amino acid change is a conservative one, or on various estimates of evolutionary conservation. If they could instead view variants in the context of a protein's biological 3D structure, they might gain a deeper understanding of how a variant is likely to affect the protein, and thus better understand the mechanism by which it may cause disease. This could in turn lead to an ability to make more informed choices in asking research questions, and even in making more appropriate treatment choices for patients.
 
-# What is SHoVEIT?
-Note: Not a serious proposal. Other ideas: ClinProt, ClinProtView, ?)
+## Method:
 
-Overview Diagram
+dbSNP developers provided us access to a [cgi](https://www.ncbi.nlm.nih.gov/projects/SNP/beVarSearch.cgi?appname=iCn3D&format=bed&report=pdb2bed&gi=809237) that retrieves ClinVar and dbSNP data for annotations. _(more needed here)_
 
-# How to use ShoVEIT
+## Test Page:
 
-## Installation options:
+A test page can be viewed [here](https://test.ncbi.nlm.nih.gov/Structure/icn3d2/seq.html?id=809237l). Novel annotations resulting from the achievements of this hackathon are shown at the bottom of the page. Users can highlight desired SNP residues or domains on the 3D protein structure simply by selecting the corresponding amino acids in the sequence pane. _(more needed here)_
 
-We provide two options for installing <this software>: Docker or directly from Github.
-
-### Docker
-
-The Docker image contains <this software> as well as a webserver and FTP server in case you want to deploy the FTP server. It does also contain a web server for testing the <this software> main website (but should only be used for debug purposes).
-
-1. `docker pull ncbihackathons/<this software>` command to pull the image from the DockerHub
-2. `docker run ncbihackathons/<this software>` Run the docker image from the master shell script
-3. Edit the configuration files as below
-
-### Installing <this software> from Github
-
-1. `git clone https://github.com/NCBI-Hackathons/<this software>.git`
-2. Edit the configuration files as below
-3. `sh server/<this software>.sh` to test
-4. Add cron job as required (to execute <this software>.sh script)
-
-### Configuration
-
-```Examples here```
-
-# Testing
-
-We tested four different tools with <this software>. They can be found in [server/tools/](server/tools/) . 
-
-# Additional Functionality
-
-### DockerFile
-
-<this software> comes with a Dockerfile which can be used to build the Docker image.
-
-  1. `git clone https://github.com/NCBI-Hackathons/<this software>.git`
-  2. `cd server`
-  3. `docker build --rm -t <this software>/<this software> .`
-  4. `docker run -t -i <this software>/<this software>`
-  
-### Website
-
-There is also a Docker image for hosting the main website. This should only be used for debug purposes.
-
-  1. `git clone https://github.com/NCBI-Hackathons/<this software>.git`
-  2. `cd Website`
-  3. `docker build --rm -t <this software>/website .`
-  4. `docker run -t -i <this software>/website`
-  
-  
-  
-  # Old text:
-
-Mapping Clinically Relevant Mutations to Protein Structures
-
-## Goal:
-To enhance iCn3D (new interactive version of Cn3D at NCBI) by annotating all 3D protein structures with dbSNP rs numbers and connected clinical data from ClinVar.
-
-- iCn3D running with example
-- Get data
--- Data Source
---- SNP ftp (rs => gi.snp)
-ftp://ftp.ncbi.nlm.nih.gov/snp/organism/human_9606/database/data/organism_data/SNP3D.bcp.gz
-(has cgi to get data)
---- ClinVar information - elink: SNP => ClinVar, rs => variant_id
