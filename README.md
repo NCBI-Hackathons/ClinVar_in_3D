@@ -82,3 +82,5 @@ To enhance iCn3D (new interactive version of Cn3D at NCBI) by annotating all 3D 
 ftp://ftp.ncbi.nlm.nih.gov/snp/organism/human_9606/database/data/organism_data/SNP3D.bcp.gz
 (has cgi to get data)
 --- ClinVar information - elink: SNP => ClinVar, rs => variant_id
+
+Test page: [https://test.ncbi.nlm.nih.gov/Structure/icn3d2/seq.html?id=809237](https://test.ncbi.nlm.nih.gov/Structure/icn3d2/seq.html?id=809237l)
