@@ -28,5 +28,8 @@ dbSNP developers provided us access to a [cgi](https://www.ncbi.nlm.nih.gov/proj
 
 ## Test Page:
 
-A test page can be viewed [here](https://test.ncbi.nlm.nih.gov/Structure/icn3d2/seq.html?id=809237l). Novel annotations resulting from the achievements of this hackathon are shown at the bottom of the page. Users can highlight desired SNP residues or domains on the 3D protein structure simply by selecting the corresponding amino acids in the sequence pane. _(more needed here)_
+A test page can be viewed [here](https://www.ncbi.nlm.nih.gov/Structure/icn3d2/seq.html?id=809237). Novel annotations resulting from the achievements of this hackathon are shown at the bottom of the page. Users can highlight desired SNP residues or domains on the 3D protein structure simply by selecting the corresponding amino acids in the sequence pane. _(more needed here)_
 
+## Slides:
+
+Slidedeck [here](http://slides.com/jiywang3/deck).
