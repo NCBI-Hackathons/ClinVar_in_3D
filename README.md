@@ -1,5 +1,15 @@
 # Viewing ClinVar & dbSNP Variants on 3D Protein Structures
 
+## Elevator Pitch
+
+As a ClinVar user, what if you could see the position of a variant of interest highlighted in a 3-dimensional view of the variant's protein structure?
+
+One of the biggest challenges facing researchers and clinicians in medical genomics and personalized medicine is the interpretation of variants. Efforts to prioritize which variants from among a long list should be studied first are often restricted to: allele frequency, the biochemical nature of an amino acid substitution (for example), or one of several available bioinformatic estimates of evolutionary conservation.
+
+However, every protein-altering variant exerts its effect in the biological context of a 3-dimensional protein. **iCn3D** is a Web-GL-based 3D protein structure viewer which allows users to interact with the protein sequence and structure, highlighting desired amino acids so that their influence on the protein within the 3D structure can be better understood. iCn3D's usefulness has so far been limited, however, by the lack of annotations for existing variants. In this hackthon we leveraged a cgi to retrieve variant annotations from databases such as dbSNP and ClinVar, among others, which has enabled us to project these annotations directly on the protein structure using iCn3Ds interactive 3D view.
+
+This improved version of iCn3D can be implemented as a widget and embedded directly in dbSNP and ClinVar webpages, offering users a new, intuitive level of insight into the 3-dimensional biological context of any variant of interest for which a 3D protein model exists. 
+
 ## Introduction
 
 iCn3D is an interactive WebGL-based 3D protein structure viewer that displays a given protein in 1D (amino acid sequence), 2D (interaction diagram), and 3D (rotating 3D model) simultaneously. Users can interact with a protein by, for example, highlighting several amino acid residues in the sequence view; the corresponding residues in the remaining views are automatically highlighted. Our goal in this hackathon is to enhance the functionality of iCn3D by importing annotations from other rich sources of information about proteins, such as dbSNP rs numbers, ClinVar assertions of pathogenicity, and known structural features such as ligand binding pockets, protein interaction surfaces, and other functional domains.
