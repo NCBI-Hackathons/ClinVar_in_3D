@@ -16,7 +16,7 @@ iCn3D is an interactive WebGL-based 3D protein structure viewer that displays a 
 
 ## What's the problem?
 
-In order for annotations to be viewed in iCn3D they must be retrieved from databases (e.g., dbSNP and ClinVar) using Ajax calls. _(more needed here)_
+In order for annotations to be viewed in iCn3D they must be retrieved from databases (e.g., dbSNP and ClinVar) using Ajax calls.
 
 ## Why should we solve it?
 
@@ -24,9 +24,9 @@ Without the aid of a 3D protein structure viewer like iCn3D, researchers and cli
 
 ## Method:
 
-dbSNP developers provided us access to a [cgi](https://www.ncbi.nlm.nih.gov/projects/SNP/beVarSearch.cgi?appname=iCn3D&format=bed&report=pdb2bed&gi=809237) that retrieves ClinVar and dbSNP data for annotations. _(more needed here)_
+dbSNP developers provided us access to a [cgi](https://www.ncbi.nlm.nih.gov/projects/SNP/beVarSearch.cgi?appname=iCn3D&format=bed&report=pdb2bed&gi=809237) that retrieves ClinVar and dbSNP data for annotations.
 
 ## Test Page:
 
-A test page can be viewed [here](https://www.ncbi.nlm.nih.gov/Structure/icn3d2/seq.html?id=809237). Novel annotations resulting from the achievements of this hackathon are shown at the bottom of the page. Users can highlight desired SNP residues or domains on the 3D protein structure simply by selecting the corresponding amino acids in the sequence pane. _(more needed here)_
+A test page can be viewed [here](https://www.ncbi.nlm.nih.gov/Structure/icn3d2/seq.html?id=809237). Novel annotations resulting from the achievements of this hackathon are shown at the bottom of the page. Users can highlight desired SNP residues or domains on the 3D protein structure simply by selecting the corresponding amino acids in the sequence pane.
 
