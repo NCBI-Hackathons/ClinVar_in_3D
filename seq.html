@@ -15,12 +15,15 @@
   <div id="seq0" class="icn3d-box" style="overflow:auto;">
 		<div id="giseq" class="scale"></div>
 		<div id="snp" class="scale"></div>
+		<div id="interaction" class="scale"></div>
 		<div id="cddsite" class="scale"></div>
 		<div id="domain" class="scale"></div>
   </div>
   <br/><br/>
 
-  <link rel="stylesheet" href="lib/jquery-ui.min.css">
+  <!--link rel="stylesheet" href="lib/jquery-ui.min.css"-->
+  <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
   <link rel="stylesheet" href="icn3d_full_ui.css">
   <style>
   .icn3d-seqTitle, .icn3d-seqTitle2, .icn3d-annoTitle {display:inline-block; font-size:11px; font-weight:bold; width:120px!important;}
@@ -28,10 +31,26 @@
   .link {color: #0000FF; cursor: pointer;}
   .left {text-align:left!important;}
   .right {text-align:right!important;}
+  .icn3d-clinvar {color:green; font-size:12px; font-weight:bold;}
+  .icn3d-clinvar-path {color:purple; font-size:12px; font-weight:bold;}
+
 //  .scale {-ms-transform:scaleX(1); -webkit-transform:scaleX(1); transform:scaleX(1); -ms-transform-origin-x: 0; -webkit-transform-origin-x: 0;  transform-origin-x: 0; }
+
+  // for jquery tooltip
+  label {
+      display: inline-block;
+      width: 200px; // 5em;
+  }
+	.ui-widget {
+		font-family: Arial,Helvetica,sans-serif;
+		font-size: 0.9em!important;
+	}
   </style>
-  <script src="lib/jquery.min.js"></script>
-  <script src="lib/jquery-ui.min.js"></script>
+  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+  <!--script src="lib/jquery.min.js"></script>
+  <script src="lib/jquery-ui.min.js"></script-->
   <script src="lib/three.min.js"></script>
 
 
@@ -94,6 +113,30 @@
     var BACKGROUND = params.background;
     if(BACKGROUND === undefined) BACKGROUND = 0;
 
+	// jquery tooltip
+	//https://stackoverflow.com/questions/18231315/jquery-ui-tooltip-html-with-links
+	$(function () {
+		$(document).tooltip({
+			content: function () {
+				return $(this).prop('title');
+			},
+			show: null,
+			close: function (event, ui) {
+				ui.tooltip.hover(
+
+				function () {
+					$(this).stop(true).fadeTo(400, 1);
+				},
+
+				function () {
+					$(this).fadeOut("400", function () {
+						$(this).remove();
+					})
+				});
+			}
+		});
+	});
+
     $( document ).ready(function() {
           //======== section 1: set iCn3D
 /*
@@ -110,10 +153,179 @@
 		  $("#" + me.pre + "canvas").width(width).height(height);
 		};
 */
+
+/*
+		// show interactions in download2Ddiagram
+		iCn3DUI.prototype.download2Ddiagram = function(mmdbid, structureIndex) {var me = this;
+		  me.deferred3 = $.Deferred(function() {
+			var url="https://www.ncbi.nlm.nih.gov/Structure/mmdb/mmdb_strview.cgi?uid="+mmdbid+"&format=json&intrac=3";
+			$.ajax({
+				url: url,
+				dataType: 'jsonp',
+				success: function( data ) {
+					me.draw2Ddiagram(data, mmdbid, structureIndex);
+
+					//start to show interactions-------------
+					//        var residueArray = me.chainids2resids[chainid1][chainid2];
+					var chainname2residues = {};
+
+					var chainArray = Object.keys(me.icn3d.chains);
+					var dnaArray = [];
+					for(var i = 0, il = chainArray.length; i < il; ++i) {
+						var atom = me.icn3d.getFirstAtomObj(me.icn3d.chains[chainArray[i]]);
+						if(me.icn3d.ligands.hasOwnProperty(atom.serial)) { // 1. ligand interact with proteins
+							var chain2Array = Object.keys(me.chainids2resids[chainArray[i]]);
+							for(var j = 0, jl = chain2Array.length; j < jl; ++j) {
+								var name = 'Ligand: Chain ' + chain2Array[j].substr(chain2Array[j].indexOf('_') + 1);
+								chainname2residues[name] = me.chainids2resids[chainArray[i]][chain2Array[j]];
+							}
+						}
+						else if(me.icn3d.nucleotides.hasOwnProperty(atom.serial)) { // 1. DNA interact with proteins
+							dnaArray.push(chainArray[i]);
+						}
+					}
+
+					// show DNA interaction only if a few DNAs are available
+					if(dnaArray.length <= 2)
+						for(var i = 0, il = dnaArray.length; i < il; ++i) {
+							var chain2Array = Object.keys(me.chainids2resids[chainArray[i]]);
+							for(var j = 0, jl = chain2Array.length; j < jl; ++j) {
+								var name = 'Nucleotide: Chain ' + chain2Array[j].substr(chain2Array[j].indexOf('_') + 1);
+								chainname2residues[name] = me.chainids2resids[chainArray[i]][chain2Array[j]];
+							}
+						}
+					}
+
+console.log("chainname2residues: " + JSON.stringify(chainname2residues));
+			    var html = '<div id="interseq_sequence" class="icn3d-dl_sequence">';
+
+			    var siteArray = data.data[0].sites;
+
+			    for(var chainname in chainname2residues) {
+					var residueArray = chainname2residues[chainname];
+					var resCnt = residueArray.length;
+
+					var title = chainname;
+					if(title.length > 20) title = title.substr(0, 20) + '...';
+
+					var fulltitle = title;
+
+					var resPosArray = [];
+					for(var i = 0, il = residueArray.length; i < il; ++i) {
+						resPosArray.push( residueArray[i].substr(residueArray[i].lastIndexOf('_') + 1) );
+					}
+
+					html += '<div class="icn3d-seqTitle link" interaction="interaction" posarray="' + resPosArray.toString() + '" shorttitle="' + title + '" anno="sequence" title="' + fulltitle + '">' + title + ' </div>';
+					html += '<span class="icn3d-seqLine">';
+					html += '<span class="icn3d-residueNum" title="residue count in the site">' + resCnt.toString() + ' Residues</span>';
+
+					var pre = 'inter';
+					for(var i = 0, il = icn3dui.giSeq.length; i < il; ++i) {
+					  if(resPosArray.indexOf(i) != -1) {
+					    var c = icn3dui.giSeq.charAt(i);
+					    var pos = (i+1).toString();
+
+					  	html += '<span id="' + pre + '_' + chainname + '" title="' + c + pos + '" class="icn3d-residue">' + c + '</span>';
+					  }
+					  else {
+					  	html += '<span></span>'; //'<span>-</span>';
+					  }
+					}
+					html += '<span class="icn3d-residueNum" title="residue count in the site">' + resCnt.toString() + ' Residues</span>';
+					html += '</span>';
+					html += '<br>';
+				}
+
+				html += '</div>';
+
+				$("#" + interactiondivid).html(html);
+
+				// add here after the ajax call
+				//selectSequenceNonMobile();
+
+					//end -------------
+
+					if(me.cfg.show2d !== undefined && me.cfg.show2d) me.openDialog(me.pre + 'dl_2ddiagram', 'Interactions');
+					if(me.deferred3 !== undefined) me.deferred3.resolve();
+				}
+			});
+		  });
+
+		  return me.deferred3;
+		};
+*/
+
+		iCn3DUI.prototype.setTools = function() { var me = this;
+			// start of original code ==============
+        var html = "";
+
+        html += "  <div id='" + me.pre + "selection' style='position:absolute; z-index:555; float:left; display:table-row; margin: 32px 0px 0px 3px;'>";
+        html += "    <table style='margin-top: 3px; width:100px;'><tr valign='center'>";
+
+        html += "        <td valign='top'><div class='icn3d-commandTitle' style='min-width:40px; margin-top: 24px; white-space: nowrap;'><span id='" + me.pre + "modeall' title='Style, color, and surface menu options will be applied to all atoms in the structure'>All atoms</span><span id='" + me.pre + "modeselection' class='icn3d-modeselection' style='display:none;' title='Style, color, and surface menu options will be applied only to selected atoms'>Selection</span></div>";
+        html += "        <label class='icn3d-switch'><input id='" + me.pre + "modeswitch' type='checkbox'><div class='icn3d-slider icn3d-round' style='width:34px; height:18px; margin: 12px 0px 0px 3px;' title='Left (\"All atoms\"): Style, color, and surface menu options will be applied to all atoms in the structure&#13;Right (\"Selection\"): Style, color, and surface menu options will be applied only to selected atoms'></div></label></td>";
+
+        if(me.cfg.cid === undefined) {
+            html += "        <td valign='top'><span class='icn3d-commandTitle'>Structure:</span><br/>";
+            html += "        <div style='margin-top:-3px;'><select id='" + me.pre + "structureid' multiple size='1' style='min-width:50px;'>";
+            html += "        </select></div></td>";
+
+            if(me.cfg.align !== undefined) {
+                html += "        <td valign='top'><span class='icn3d-commandTitle'>Aligned:</span><br/>";
+                html += "        <div style='margin-top:-3px;'><select id='" + me.pre + "alignChainid' multiple size='1' style='min-width:50px;'>";
+                html += "        </select></div></td>";
+            }
+            else {
+                html += "        <td valign='top'><span class='icn3d-commandTitle'>Chain:</span><br/>";
+                html += "        <div style='margin-top:-3px;'><select id='" + me.pre + "chainid' multiple size='1' style='min-width:50px;'>";
+                html += "        </select></div></td>";
+            }
+        }
+
+        html += "        <td valign='top'><span class='icn3d-commandTitle'>Custom:</span><br/>";
+        html += "        <div style='margin-top:-3px;'><select id='" + me.pre + "customResidues' multiple size='1' style='min-width:50px;'>";
+        html += "        </select></div></td>";
+
+        var buttonStyle = me.isMobile() ? 'none' : 'button';
+
+        if(me.cfg.cid === undefined) {
+            html += "      <td valign='top'><div style='margin:3px 0px 0px 10px;'><button style='-webkit-appearance:" + buttonStyle + "; height:36px;' id='" + me.pre + "show_sequences'><span style='white-space:nowrap' class='icn3d-commandTitle' title='Show the sequences of the selected structure'>View<br/>Sequence</span></button></div></td>";
+
+            if(me.cfg.align !== undefined) {
+                html += "      <td valign='top'><div style='margin:3px 0px 0px 10px;'><button style='-webkit-appearance:" + buttonStyle + "; height:36px;' id='" + me.pre + "show_alignsequences'><span style='white-space:nowrap' class='icn3d-commandTitle' title='Show the sequences of the aligned structures'>Aligned<br/>Sequence</span></button></div></td>";
+            }
+
+            if(me.cfg.mmdbid !== undefined || me.cfg.gi !== undefined || me.cfg.align !== undefined) {
+                html += "      <td valign='top'><div style='margin:3px 0px 0px 10px;'><button style='-webkit-appearance:" + buttonStyle + "; height:36px;' id='" + me.pre + "show_2ddiagram'><span style='white-space:nowrap' class='icn3d-commandTitle' title='Show the interactions of the structure'>View<br/>Interactions</span></button></div></td>";
+            }
+
+            html += "      <td valign='top'><div id='" + me.pre + "alternateWrapper' style='margin:3px 0px 0px 10px;'><button style='-webkit-appearance:" + buttonStyle + "; height:36px;' id='" + me.pre + "alternate'><span style='white-space:nowrap' class='icn3d-commandTitle' title='Alternate the structures'>Alternate<br/>(Key \"a\")</span></button></div></td>";
+        }
+
+        html += "      <td valign='top'><div style='margin:3px 0px 0px 10px;'><button style='-webkit-appearance:" + buttonStyle + "; height:36px;' id='" + me.pre + "show_selected'><span style='white-space:nowrap' class='icn3d-commandTitle' title='Display ONLY the selected atoms'>Display Only<br/>Selection</span></button></div></td>";
+
+        html += "      <td valign='top'><div style='margin:3px 0px 0px 10px;'><button style='-webkit-appearance:" + buttonStyle + "; height:36px;' id='" + me.pre + "toggleHighlight'><span style='white-space:nowrap' class='icn3d-commandTitle' title='Turn on and off the 3D highlight in the viewer'>Toggle<br/>Highlight</span></button></div></td>";
+
+        //html += "      <td valign='top'><div style='margin:3px 0px 0px 10px;'><button style='-webkit-appearance:" + buttonStyle + "; height:36px;' id='" + me.pre + "clearall'><span style='white-space:nowrap' class='icn3d-commandTitle' title='Clear all selections'>Clear<br/>All</span></button></div></td>";
+
+        html += "      <td valign='top'><div style='margin:3px 0px 0px 10px;'><button style='-webkit-appearance:" + buttonStyle + "; height:36px;' id='" + me.pre + "resetorientation'><span style='white-space:nowrap' class='icn3d-commandTitle' title='Reset Orientation'>Reset<br/>Orientation</span></button></div></td>";
+
+			// only one button below was changed
+			if(me.cfg.align === undefined) {
+				html += "      <td valign='top'><div style='margin:3px 0px 0px 10px;'><button style='-webkit-appearance:" + buttonStyle + "; height:36px;' id='prevclin'><span style='white-space:nowrap' class='icn3d-commandTitle' title='Show the previous ClinVar on structure'>Previous<br>ClinVar</span></button></div></td>";
+				html += "      <td valign='top'><div style='margin:3px 0px 0px 10px;'><button style='-webkit-appearance:" + buttonStyle + "; height:36px;' id='nextclin'><span style='white-space:nowrap' class='icn3d-commandTitle' title='Show the next ClinVar on structure'>Next<br>ClinVar</span></button></div></td>";
+			}
+
+        html += "    </tr></table>";
+        html += "    </div>";
+
+        return html;
+        };
+
           var cfg = {
               divid: 'div0',
               width: '100%',
-              height: '90%',
+              height: '80%',
               resize: false,
               rotate: false,
               showmenu: true,
@@ -129,6 +341,7 @@
           }
 
           var icn3dui = new iCn3DUI(cfg);
+          icn3dui.options['background'] = 'black';
 
           //communicate with the 3D viewer with chained functions
           //$.when(icn3dui.show3DStructure()).then(function() {
@@ -140,6 +353,7 @@
         var cdddivid = 'cddsite';
         var domaindivid = 'domain';
         var snpdivid = 'snp';
+        var interactiondivid = 'interaction';
 
         var bShowAllDna = false;
         var giChainid = '';
@@ -154,6 +368,13 @@
 
           	var giSeq = strArray.join('');
           	icn3dui.giSeq = giSeq;
+
+          	var divLength = 10 * icn3dui.giSeq.length + 250;
+
+          	$("#giseq").width(divLength);
+          	$("#snp").width(divLength);
+          	$("#cddsite").width(divLength);
+          	$("#domain").width(divLength);
 
 //console.log("seq: " + icn3dui.giSeq);
 
@@ -236,7 +457,7 @@
         } // function showSeq(data)
 
 		function selectSequenceNonMobile() { var me = icn3dui;
-		  $("#giseq_sequence").add("#cddseq_sequence").add("#domainseq_sequence").add("#snpseq_sequence").selectable({
+		  $("#giseq_sequence").add("#cddseq_sequence").add("#domainseq_sequence").add("#snpseq_sequence").add("#interseq_sequence").selectable({
 		  //$("#cddseq_sequence").add("#domainseq_sequence").selectable({
 			  stop: function() {
 				  $("#" + me.pre + "chainid").val("");
@@ -282,6 +503,19 @@
 									me.icn3d.highlightAtoms[j] = 1;
 								  }
 								  me.selectedResidues[residueid] = 1;
+
+								  //if($(this).attr('label') !== undefined) {
+								  if($(this).attr('disease') !== undefined) {
+									  var label = $(this).attr('disease');
+
+									  var position = me.icn3d.centerAtoms(me.icn3d.hash2Atoms(me.icn3d.residues[residueid]));
+									  //position.center.add(new THREE.Vector3(3.0, 3.0, 3.0)); // shift a little bit
+
+									  var maxlen = 15;
+									  if(label.length > maxlen) label = label.substr(0, maxlen) + '...';
+
+									  addLabel(label, position);
+								  }
 								}
 								else {
 									for (var i in me.icn3d.residues[residueid]) {
@@ -315,6 +549,7 @@
 */
 
 				  me.icn3d.addResiudeLabels(me.icn3d.highlightAtoms);
+
 				  me.icn3d.draw();
 
 				  // update menu
@@ -356,7 +591,7 @@
 								  chainid = pdbid + '_' + CHAIN;
 								}
 								else {
-								  chainid = Object.keys(me.icn3d.chains)[0];
+								  chainid = giChainid; //Object.keys(me.icn3d.chains)[0];
 								}
 
 								  // protein chains
@@ -379,7 +614,7 @@
 								  } // end of if
 								//} // end of for
 							}
-							else if($(this).attr('site') !== undefined) {
+							else if($(this).attr('site') !== undefined || $(this).attr('clinvar') !== undefined) {
 								var posArray = $(this).attr('posarray').split(',');
 
 								me.icn3d.highlightAtoms = {};
@@ -392,7 +627,7 @@
 								  chainid = pdbid + '_' + CHAIN;
 								}
 								else {
-								  chainid = Object.keys(me.icn3d.chains)[0];
+								  chainid = giChainid; //Object.keys(me.icn3d.chains)[0];
 								}
 
 								  // protein chains
@@ -461,13 +696,87 @@
            }
 		}
 
-		function getSnpLine(line, totalLineNum, resi2snp, bStartEndRes) {
-			var title = 'SNP';
+		function navClinVar() {
+			icn3dui.currClin = - 1;
 
+			$("#prevclin").on('click', function(e) {
+			  e.preventDefault();
+
+			  --icn3dui.currClin;
+			  if(icn3dui.currClin < 0) icn3dui.currClin = 0;
+
+			  showClinVarLabelOn3D();
+			});
+
+			$("#nextclin").on('click', function(e) {
+			  e.preventDefault();
+
+			  ++icn3dui.currClin;
+			  if(icn3dui.currClin > icn3dui.resi2disease_nonempty.length - 1) icn3dui.currClin = icn3dui.resi2disease_nonempty.length - 1;
+
+			  showClinVarLabelOn3D();
+			});
+		}
+
+		function showClinVarLabelOn3D() {
+			  var resiArray = Object.keys(icn3dui.resi2disease_nonempty);
+
+				var chainid, residueid;
+
+				if(bInputPdb) {
+				  chainid = pdbid + '_' + CHAIN;
+				}
+				else {
+				  chainid = giChainid; //Object.keys(me.icn3d.chains)[0];
+				}
+
+				residueid = chainid + '_' + resiArray[icn3dui.currClin];
+
+				var label = '';
+
+				var diseaseArray = icn3dui.resi2disease_nonempty[resiArray[icn3dui.currClin]];
+
+				for(var k = 0, kl = diseaseArray.length; k < kl; ++k) {
+					if(diseaseArray[k] != '' && diseaseArray[k] != 'not specified' && diseaseArray[k] != 'not provided') {
+						label = diseaseArray[k];
+						break;
+					}
+				}
+
+			  var position = icn3dui.icn3d.centerAtoms(icn3dui.icn3d.hash2Atoms(icn3dui.icn3d.residues[residueid]));
+			  //position.center.add(new THREE.Vector3(3.0, 3.0, 3.0)); // shift a little bit
+
+			  var maxlen = 15;
+			  if(label.length > maxlen) label = label.substr(0, maxlen) + '...';
+
+				icn3dui.icn3d.labels = {};
+
+			    addLabel(label, position);
+
+console.log("residueid: " + residueid);
+
+				icn3dui.icn3d.highlightAtoms = {};
+
+				for(var j in icn3dui.icn3d.residues[residueid]) {
+					icn3dui.icn3d.highlightAtoms[j] = 1;
+				}
+
+				icn3dui.icn3d.addHighlightObjects();
+
+				icn3dui.icn3d.addResiudeLabels(icn3dui.icn3d.highlightAtoms);
+
+
+			  icn3dui.icn3d.draw();
+        }
+
+		function getSnpLine(line, totalLineNum, resi2snp, resi2rsnum, resi2clinAllele, resi2index, resi2sig, posarray, posClinArray, bStartEndRes) {
 			var html = '';
 
 			if(bStartEndRes) {
-				html += '<div class="icn3d-seqTitle link" shorttitle="' + title + '" anno="sequence" title="' + title + '">' + title + ' </div>';
+				var title1 = 'ClinVar', title2 = 'SNP';
+
+				html += '<div class="icn3d-seqTitle link icn3d-clinvar-path" clinvar="clinvar" posarray="' + posClinArray + '" shorttitle="' + title1 + '" anno="sequence" title="' + title1 + '" style="width:60px!important;">' + title1 + ', </div>';
+				html += '<div class="icn3d-seqTitle link" clinvar="clinvar" posarray="' + posarray + '" shorttitle="' + title2 + '" anno="sequence" title="' + title2 + '" style="width:60px!important;">' + title2 + '</div>';
 			}
 			else {
 				html += '<div class="icn3d-seqTitle"></div>';
@@ -478,15 +787,63 @@
 			html += '<span class="icn3d-seqLine">';
 			var start = bStartEndRes ? '1' : '';
 			html += '<span class="icn3d-residueNum" title="starting protein sequence number">' + start + '</span>';
+			var diseaseStr = '';
 			for(var i = 1, il = icn3dui.giSeq.length; i <= il; ++i) {
-			  if(i % totalLineNum == line && resi2snp[i] !== undefined) {
+			  //if(resi2snp[i] !== undefined) {
+			  if(resi2index[i] !== undefined && resi2index[i] % totalLineNum == line ) {
 				var c = icn3dui.giSeq.charAt(i-1);
 				var pos = i.toString();
 
-				var snpStr = c + '>' + resi2snp[i].split('');
-				var snpTitle = pos + snpStr;
+				var snpStr = c + '>', snpTitle = '';
+				var snpType = '';
 
-				html += '<span id="' + pre + '_' + gi + '_' + pos + '" title="' + snpTitle + '" class="icn3d-residue">' + snpStr + '</span>';
+				for(var j = 0, jl = resi2snp[i].length; j < jl; ++j) {
+					snpStr += resi2snp[i][j];
+					snpTitle += pos + c + '>' + resi2snp[i][j];
+
+					// disease and significace
+					var diseaseArray = icn3dui.resi2disease[i][j].split('; ');
+					var sigArray = resi2sig[i][j].split('; ');
+
+					var diseaseTitle = '';
+					var index = 0;
+					for(var k = 0, kl = diseaseArray.length; k < kl; ++k) {
+						if(diseaseArray[k] != '' && diseaseArray[k] != 'not specified' && diseaseArray[k] != 'not provided') {
+							if(index > 0) {
+								diseaseTitle += '; ';
+							}
+							else {
+								if( j === 0) diseaseStr = 'disease="' + diseaseArray[k] + '"';
+							}
+
+							diseaseTitle += diseaseArray[k] + ' (' + sigArray[k] + ')';
+							++index;
+						}
+					}
+
+					//resi2rsnum, resi2clinAllele,
+
+					if(diseaseTitle != '') {
+						snpType = 'icn3d-clinvar';
+
+						snpTitle += ': ' + diseaseTitle;
+						snpTitle += "<br>Links: <a href='https://www.ncbi.nlm.nih.gov/clinvar/?term=" + resi2clinAllele[i][j] + "[AlleleID]' target='_blank'>ClinVar</a>, <a href='https://www.ncbi.nlm.nih.gov/snp/?term=" + resi2rsnum[i][j] + "' target='_blank'>dbSNP (rs" + resi2rsnum[i][j] + ")</a>";
+					}
+					else {
+						snpTitle += "<br>Links: <a href='https://www.ncbi.nlm.nih.gov/snp/?term=" + resi2rsnum[i][j] + "' target='_blank'>dbSNP</a>"
+					}
+
+					if(j < jl - 1) {
+						snpStr += ';';
+						snpTitle += '<br><br>';
+					}
+				}
+
+				if(snpTitle.indexOf('Pathogenic') != -1) {
+					snpType = 'icn3d-clinvar-path';
+				}
+
+				html += '<span id="' + pre + '_' + gi + '_' + pos + '" label title="' + snpTitle + '" ' + diseaseStr + ' class="icn3d-residue ' + snpType + '">' + snpStr + '</span>';
 			  }
 			  else {
 				html += '<span></span>'; //'<span>-</span>';
@@ -502,7 +859,17 @@
 
 		function showSnp() {
 			// show conserved domains and binding sites
-			var url = "https://test.ncbi.nlm.nih.gov/projects/SNP/beVarSearch.cgi?appname=iCn3D&format=bed&report=pdb2bed&gi=" + gi;
+			//var url = "https://test.ncbi.nlm.nih.gov/projects/SNP/beVarSearch.cgi?appname=iCn3D&format=bed&report=pdb2bed&gi=" + gi;
+			//var url = "https://test.ncbi.nlm.nih.gov/projects/SNP/beVarSearch_mt.cgi?appname=iCn3D&format=bed&report=pdb2bed&gi=" + gi;
+
+			var url;
+			if(bInputPdb) {
+				url = "https://www.ncbi.nlm.nih.gov/projects/SNP/beVarSearch_mt.cgi?appname=iCn3D&format=bed&report=pdb2bed&acc=" + gi;
+			}
+			else {
+				url = "https://www.ncbi.nlm.nih.gov/projects/SNP/beVarSearch_mt.cgi?appname=iCn3D&format=bed&report=pdb2bed&gi=" + gi;
+			}
+
 			$.ajax({
 			  url: url,
 			  dataType: 'text',
@@ -510,37 +877,94 @@
 			  success: function(data) {
 			    var html = '<div id="snpseq_sequence" class="icn3d-dl_sequence">';
 
-				var strArray = data.split('\n');
+				var lineArray = data.split('\n');
 
 				var resi2snp = {};
-				for(var i = 0, il = strArray.length; i < il; ++i) {
-				  var snpStr = strArray[i].split('\t')[3];
+				var resi2index = {};
+				//var resi2disease = {};
+				icn3dui.resi2disease = {};
+				icn3dui.resi2disease_nonempty = {};
+				var resi2sig = {};
+
+				var resi2rsnum = {};
+				var resi2clinAllele = {};
+
+				var posHash = {}, posClinHash = {};
+				for(var i = 0, il = lineArray.length; i < il; ++i) {
+				 if(lineArray[i] != '') {
+				  var fieldArray = lineArray[i].split('\t');
+
+				  var snpStr = fieldArray[3];
 
 				  var resiStr = snpStr.substr(0, snpStr.length - 3);
+
 				  var resi = parseInt(resiStr);
 				  var currRes = snpStr.substr(snpStr.length - 3, 1);
 				  var snpRes = snpStr.substr(snpStr.length - 1, 1);
 
+				  var rsnum = fieldArray[4];
+				  var clinAllele = fieldArray[5];
+				  var disease = fieldArray[6];  // When more than 2+ diseases, they are separated by "; "
+				  								// Some are "not specified", "not provided"
+				  var clinSig = fieldArray[7]; 	// Clinical significance, When more than 2+ diseases, they are separated by "; "
 
+				  // "*" means terminating codon, "-" means deleted codon
+				  //if(currRes !== '-' && currRes !== '*' && snpRes !== '-' && snpRes !== '*') {
+					    posHash[resi] = 1;
+					    if(disease != '') posClinHash[resi] = 1;
+					    resi2index[resi] = i + 1;
 
-				  if(currRes !== '-' && currRes !== '*' && snpRes !== '-' && snpRes !== '*') {
-				  	if(resi2snp[resi] === undefined) {
-				  		resi2snp[resi] = '';
-				  	}
+						if(resi2snp[resi] === undefined) {
+							resi2snp[resi] = [];
+						}
+						resi2snp[resi].push(snpRes);
 
-				  	resi2snp[resi] += snpRes;
-				  }
+						if(resi2rsnum[resi] === undefined) {
+							resi2rsnum[resi] = [];
+						}
+						resi2rsnum[resi].push(rsnum);
+
+						if(resi2clinAllele[resi] === undefined) {
+							resi2clinAllele[resi] = [];
+						}
+						resi2clinAllele[resi].push(clinAllele);
+
+						if(icn3dui.resi2disease[resi] === undefined) {
+							icn3dui.resi2disease[resi] = [];
+						}
+						icn3dui.resi2disease[resi].push(disease);
+
+						if(disease != '') {
+							if(icn3dui.resi2disease_nonempty[resi] === undefined) {
+								icn3dui.resi2disease_nonempty[resi] = [];
+							}
+							icn3dui.resi2disease_nonempty[resi].push(disease);
+						}
+
+						if(resi2sig[resi] === undefined) {
+							resi2sig[resi] = [];
+						}
+						resi2sig[resi].push(clinSig);
+
+				  //}
+				 }
 				}
+
+				var posarray = Object.keys(posHash);
+				var posClinArray = Object.keys(posClinHash);
 
 //console.log("resi2snp: " + JSON.stringify(resi2snp));
 
-				html += getSnpLine(1, 3, resi2snp, 1);
-				html += getSnpLine(2, 3, resi2snp, 0);
-				html += getSnpLine(0, 3, resi2snp, 0);
+				html += getSnpLine(1, 3, resi2snp, resi2rsnum, resi2clinAllele, resi2index, resi2sig, posarray, posClinArray, 1);
+				html += getSnpLine(2, 3, resi2snp, resi2rsnum, resi2clinAllele, resi2index, resi2sig, posarray, posClinArray, 0);
+				html += getSnpLine(0, 3, resi2snp, resi2rsnum, resi2clinAllele, resi2index, resi2sig, posarray, posClinArray, 0);
 
 				html += '</div>';
 
 				$("#" + snpdivid).html(html);
+
+				// add here after the ajax call
+				selectSequenceNonMobile();
 			  }
 			})
 			.fail(function() {
@@ -550,7 +974,7 @@
 
 		function showCddSite() {
 			// show conserved domains and binding sites
-			var url = "https://test.ncbi.nlm.nih.gov/Structure/cdannots/cdannots.fcgi?fmt&queries=" + gi;
+			var url = "https://www.ncbi.nlm.nih.gov/Structure/cdannots/cdannots.fcgi?fmt&queries=" + gi;
 			$.ajax({
 			  url: url,
 			  dataType: 'json',
@@ -629,6 +1053,9 @@
 				html += '</div>';
 
 				$("#" + cdddivid).html(html);
+
+				// add here after the ajax call
+				selectSequenceNonMobile();
 			  }
 			})
 			.fail(function() {
@@ -640,10 +1067,10 @@
 			// show 3D domains
 			var url;
 			if(pdbid === undefined) {
-			  url = "https://test.ncbi.nlm.nih.gov/Structure/mmdb/mmdb_strview.cgi?program=w3d&gi=" + gi;
+			  url = "https://www.ncbi.nlm.nih.gov/Structure/mmdb/mmdb_strview.cgi?program=w3d&gi=" + gi;
 			}
 			else {
-			  url = "https://test.ncbi.nlm.nih.gov/Structure/mmdb/mmdb_strview.cgi?program=w3d&uid=" + pdbid;
+			  url = "https://www.ncbi.nlm.nih.gov/Structure/mmdb/mmdb_strview.cgi?program=w3d&uid=" + pdbid;
 			}
 
 			$.ajax({
@@ -715,7 +1142,7 @@
 
 				$("#" + domaindivid).html(html);
 
-				// add here  due to the slowness of this ajax call
+				// add here after the ajax call
 				selectSequenceNonMobile();
 			  }
 			})
@@ -740,6 +1167,8 @@
           	showDomain();
 
           	showSnp();
+
+          	navClinVar();
 
           	//selectSequenceNonMobile();
 
