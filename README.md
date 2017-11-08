@@ -24,7 +24,7 @@ Without the aid of a 3D protein structure viewer like iCn3D, researchers and cli
 
 ## Method:
 
-dbSNP developers provided us access to a [cgi](https://www.ncbi.nlm.nih.gov/projects/SNP/beVarSearch.cgi?appname=iCn3D&format=bed&report=pdb2bed&gi=809237) that retrieves ClinVar and dbSNP data for annotations.
+dbSNP developers provided us access to a [cgi](https://www.ncbi.nlm.nih.gov/projects/SNP/beVarSearch_mt.cgi?appname=iCn3D&format=bed&report=pdb2bed&gi=809237) that retrieves ClinVar and dbSNP data for annotations.
 
 ## Test Page:
 
