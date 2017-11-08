@@ -1,4 +1,4 @@
-# Viewing ClinVar & SNP Variants in 3D Protein Structures
+# Viewing ClinVar & dbSNP Variants on 3D Protein Structures
 
 ## Introduction
 
